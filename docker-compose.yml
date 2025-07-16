@@ -1,0 +1,97 @@
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"  # RabbitMQ default messaging port
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway
+    restart: always
+    volumes:
+      - ./auth-service:/usr/src/app  # Mount local code inside container
+      - /usr/src/app/node_modules  # Prevent overwriting node_modules
+    command: npm run start:dev
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      MONGO_URI: mongodb://root:example@mongo:27017/auth-db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "3001:3001"
+  auth-service:
+    build: ./auth-service
+    container_name: auth_service
+    restart: always
+    volumes:
+      - ./auth-service:/usr/src/app  # Mount local code inside container
+      - /usr/src/app/node_modules  # Prevent overwriting node_modules
+    command: npm run start:dev
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      MONGO_URI: mongodb://root:example@mongo:27017/auth-db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "3002:3002"
+
+  chat-service:
+    build: ./chat-service
+    container_name: chat_service
+    restart: always
+    volumes:
+      - ./auth-service:/usr/src/app  # Mount local code inside container
+      - /usr/src/app/node_modules  # Prevent overwriting node_modules
+    command: npm run start:dev
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      MONGO_URI: mongodb://root:example@mongo:27017/auth-db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "3003:3003"    
+
+  profile-service:
+    build: ./profile-service
+    container_name: profile_service
+    restart: always
+    volumes:
+      - ./auth-service:/usr/src/app  # Mount local code inside container
+      - /usr/src/app/node_modules  # Prevent overwriting node_modules
+    command: npm run start:dev
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      MONGO_URI: mongodb://root:example@mongo:27017/auth-db?authSource=admin
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    ports:
+    - "3004:3004" 
+
+
+volumes:
+  mongo_data:
+    driver: local
+     
